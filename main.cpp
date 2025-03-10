@@ -1,5 +1,7 @@
-#include <iostream>
+#include "Game.h"
 
 int main () {
-  std::cout << "Hello World";
+  Game game("config.txt");
+
+  game.run();
 }
