@@ -10,6 +10,24 @@ class Component {
     bool has = false;
 };
 
+class CTransform {
+  public:
+    Vec2  pos;
+    float angle;
+
+    CTransform () {};
+    CTransform(float x, float y, float a): pos(x,y), angle(a) {}
+};
+
+class CRect {
+  public:
+    sf::RectangleShape rect;
+
+    CRect (float x, float y, float w, float h): rect({w,h}) {
+      rect.setPosition({x,y});
+    };
+};
+
 class CPosition: public Component {
   public:
     Vec2 p;

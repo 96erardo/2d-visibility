@@ -2,4 +2,3 @@
 **/*.dSYM/*
 main
 .DS_Store
-.vscode/*

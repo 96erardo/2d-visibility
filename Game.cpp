@@ -58,8 +58,8 @@ void Game::init (const std::string& path) {
 
   for (auto point : points) {
     auto ray = m_entities.addEntity("Ray");
-    auto ray1 = m_entities.addEntity("Ray");
-    auto ray2 = m_entities.addEntity("Ray");
+    //auto ray1 = m_entities.addEntity("Ray");
+    // auto ray2 = m_entities.addEntity("Ray");
 
     float ca = point.x - playerX;
     float co = point.y - playerY;
@@ -72,21 +72,21 @@ void Game::init (const std::string& path) {
     ray->getComponent<CLine>().line[0].color = sf::Color::Red;
     ray->getComponent<CLine>().line[1].color = sf::Color::Red;
 
-    ray1->addComponent<CLine>(
-      Vec2(playerX, playerY), 
-      Vec2(playerX + (cos(angle1)* h), playerY + (sin(angle1) * h))
-    );
+    // ray1->addComponent<CLine>(
+    //   Vec2(playerX, playerY), 
+    //   Vec2(playerX + (cos(angle1)* h), playerY + (sin(angle1) * h))
+    // );
 
-    ray1->getComponent<CLine>().line[0].color = sf::Color::Red;
-    ray1->getComponent<CLine>().line[1].color = sf::Color::Red;
+    // ray1->getComponent<CLine>().line[0].color = sf::Color::Red;
+    // ray1->getComponent<CLine>().line[1].color = sf::Color::Red;
 
-    ray2->addComponent<CLine>(
-      Vec2(playerX, playerY), 
-      Vec2(playerX + (cos(angle2) * h), playerY + (sin(angle2) * h))
-    );
+    // ray2->addComponent<CLine>(
+    //   Vec2(playerX, playerY), 
+    //   Vec2(playerX + (cos(angle2) * h), playerY + (sin(angle2) * h))
+    // );
 
-    ray2->getComponent<CLine>().line[0].color = sf::Color::Red;
-    ray2->getComponent<CLine>().line[1].color = sf::Color::Red;
+    // ray2->getComponent<CLine>().line[0].color = sf::Color::Red;
+    // ray2->getComponent<CLine>().line[1].color = sf::Color::Red;
   }
 
   auto player = m_entities.addEntity("Player");
