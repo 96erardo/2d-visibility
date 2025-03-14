@@ -11,6 +11,10 @@ class Vertex {
     Segment* segment;
     
     Vertex (float x, float y, Segment* segment);
+
+    void calcAngle (float x, float y);
+
+    void calcDistance (float x, float y);
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include <ctime>
 #include <cmath>
 #include <array>
+#include "Segment.h"
 #include "Game.h"
 #include "Vec2.h"
 
@@ -21,79 +22,34 @@ void Game::init (const std::string& path) {
   std::ifstream file(path, std::ios::in);
   std::string command;
   std::vector<Vec2> points;
-  float playerX = 100.0f;
-  float playerY = 100.0f;
-  float x1 = 0;
-  float y1 = 0;
-  float x2 = 0;
-  float y2 = 0;
+  float playerX = 400.0f;
+  float playerY = 300.0f;
+  float x = 0;
+  float y = 0;
+  float width = 0;
+  float height = 0;
 
   while (file >> command) {
-    if (command == "Wall") {
-      file >> x1 >> y1 >> x2 >> y2;
+    if (command == "Box") {
+      file >> x >> y >> width >> height;
 
-      auto entity = m_entities.addEntity("Wall");
+      auto entity = m_entities.addEntity("Box");
 
-      entity->addComponent<CLine>(
-        Vec2(x1, y1),
-        Vec2(x2, y2)
-      );
+      entity->addComponent<CTransform>(x, y);
+      entity->addComponent<CRect>(x, y, width, height);
 
-      entity->getComponent<CLine>().line[0].color = sf::Color::White;
-      entity->getComponent<CLine>().line[1].color = sf::Color::White;
-
-      if (
-        std::find_if(points.begin(), points.end(), [x1, y1](Vec2 p) -> bool { return p == Vec2(x1, y1); } ) == points.end()
-      ) {
-        points.push_back(Vec2(x1, y1));
-      }
-
-      if (
-        std::find_if(points.begin(), points.end(), [x2, y2](Vec2 p) -> bool { return p == Vec2(x2, y2); } ) == points.end()
-      ) {
-        points.push_back(Vec2(x2, y2));
-      }
+      m_segments.push_back(Segment(x, y, x + width, y));
+      m_segments.push_back(Segment(x + width, y, x + width, y + height));
+      m_segments.push_back(Segment(x + width, y + height, x, y + height));
+      m_segments.push_back(Segment(x, y + height, x, y));
     }
-  }
-
-  for (auto point : points) {
-    auto ray = m_entities.addEntity("Ray");
-    //auto ray1 = m_entities.addEntity("Ray");
-    // auto ray2 = m_entities.addEntity("Ray");
-
-    float ca = point.x - playerX;
-    float co = point.y - playerY;
-    float angle = atan2(co, ca);
-    float h = co / sin(angle);
-    float angle1 = angle - 0.001;
-    float angle2 = angle + 0.001;
-
-    ray->addComponent<CLine>(Vec2(playerX, playerY), Vec2(point.x, point.y), angle);
-    ray->getComponent<CLine>().line[0].color = sf::Color::Red;
-    ray->getComponent<CLine>().line[1].color = sf::Color::Red;
-
-    // ray1->addComponent<CLine>(
-    //   Vec2(playerX, playerY), 
-    //   Vec2(playerX + (cos(angle1)* h), playerY + (sin(angle1) * h))
-    // );
-
-    // ray1->getComponent<CLine>().line[0].color = sf::Color::Red;
-    // ray1->getComponent<CLine>().line[1].color = sf::Color::Red;
-
-    // ray2->addComponent<CLine>(
-    //   Vec2(playerX, playerY), 
-    //   Vec2(playerX + (cos(angle2) * h), playerY + (sin(angle2) * h))
-    // );
-
-    // ray2->getComponent<CLine>().line[0].color = sf::Color::Red;
-    // ray2->getComponent<CLine>().line[1].color = sf::Color::Red;
   }
 
   auto player = m_entities.addEntity("Player");
   
-  player->addComponent<CPosition>(playerX, playerY);
-  player->addComponent<CShape>(12, 12);
-  player->getComponent<CShape>().rect.setOrigin({ 6, 6 });
+  player->addComponent<CTransform>(playerX, playerY);
+  player->addComponent<CRect>(playerX, playerY, 12, 12);
+  player->getComponent<CRect>().rect.setOrigin({ 6, 6 });
   player->getComponent<CShape>().rect.setPosition({ playerX, playerY });
   player->getComponent<CShape>().rect.setFillColor(sf::Color::Red);
 
@@ -106,7 +62,7 @@ void Game::run () {
     while (const std::optional event = m_window.pollEvent()) {
       // "close requested" event: we close the window
       if (const auto* mouseMoved =  event->getIf<sf::Event::MouseMoved>()) {
-        m_player->getComponent<CPosition>().p = Vec2(mouseMoved->position.x, mouseMoved->position.y);
+        m_player->getComponent<CTransform>().pos = Vec2(mouseMoved->position.x, mouseMoved->position.y);
       
       } else if (event->is<sf::Event::Closed>()) {
         m_window.close();
@@ -119,19 +75,25 @@ void Game::run () {
 
 void Game::sMovement () {
   m_player->getComponent<CShape>().rect.setPosition({
-    m_player->getComponent<CPosition>().p.x,
-    m_player->getComponent<CPosition>().p.y,
+    m_player->getComponent<CTransform>().pos.x,
+    m_player->getComponent<CTransform>().pos.y
   });
 
-  for (auto line : m_entities.getEntities("Ray")) {
-    line->getComponent<CLine>().p1 = Vec2(
-      m_player->getComponent<CPosition>().p.x,
-      m_player->getComponent<CPosition>().p.y
-    );
+  Vec2 pos = m_player->getComponent<CPosition>().pos;
 
-    line->getComponent<CLine>().line[0].position.x = m_player->getComponent<CPosition>().p.x;
-    line->getComponent<CLine>().line[0].position.y = m_player->getComponent<CPosition>().p.y;
+  for (auto& segment : m_segments) {
+    segment.p1.calcAngle(pos.x, pos.y);
+    segment.p1.calcDistance(pos.x, pos.y);
+    segment.p2.calcAngle(pos.x, pos.y);
+    segment.p2.calcDistance(pos.x, pos.y);
+
+    m_points.push_back(segment.p1);
+    m_points.push_back(segment.p2);
   }
+
+  std::sort(m_points.begin(), m_points.end(), [](Vertex a, Vertex b) { return a.angle < b.angle });
+
+  
 }
 
 void Game::sCollision () {
@@ -189,12 +151,8 @@ void Game::sRender () {
   m_window.clear(sf::Color(51, 54, 68)); 
 
   for (auto entity : m_entities.getEntities()) {
-    if (entity->hasComponent<CShape>()) {
-      m_window.draw(entity->getComponent<CShape>().rect);
-    }
-
-    if (entity->hasComponent<CLine>()) {
-      m_window.draw(entity->getComponent<CLine>().line);
+    if (entity->hasComponent<CRect>()) {
+      m_window.draw(entity->getComponent<CRect>().rect);
     }
   }
 

@@ -16,49 +16,17 @@ class CTransform {
     float angle;
 
     CTransform () {};
-    CTransform(float x, float y, float a): pos(x,y), angle(a) {}
+    CTransform(float x, float y, float a = 0): pos(x,y), angle(a) {}
 };
 
 class CRect {
   public:
     sf::RectangleShape rect;
 
+    CRect() {};
     CRect (float x, float y, float w, float h): rect({w,h}) {
       rect.setPosition({x,y});
     };
-};
-
-class CPosition: public Component {
-  public:
-    Vec2 p;
-    CPosition () {}
-    CPosition (float x, float y): p(x,y) {}
-};
-
-class CLine: public Component {
-  public:
-    Vec2            p1;
-    Vec2            p2;
-    float           angle = 0;
-    sf::VertexArray line;
-  
-    CLine () {}
-    CLine (
-      Vec2 point1, 
-      Vec2 point2,
-      float a = 0
-    ): p1(point1), p2(point2), angle(a), line(sf::PrimitiveType::Lines, 2) {
-      line[0].position = sf::Vector2f(p1.x, p1.y);
-      line[1].position = sf::Vector2f(p2.x, p2.y);
-    }
-};
-
-class CShape: public Component {
-  public:
-    sf::RectangleShape rect;
-
-    CShape () {}
-    CShape (float w, float h): rect({w, h}) {};
 };
 
 #endif

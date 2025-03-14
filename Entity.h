@@ -4,9 +4,8 @@
 #include "Components.h"
 
 typedef std::tuple<
-  CPosition,
-  CLine,
-  CShape
+  CTransform,
+  CRect
 > ComponentTuple;
 
 class Entity {
