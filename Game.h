@@ -3,10 +3,17 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "EntityManager.h"
 #include "Segment.h"
+#include "Vertex.h"
+
+struct Event {
+  float    angle;
+  int      order;
+  Segment& segment;
+};
 
 class Game {
   sf::RenderWindow        m_window;
-  std::shared_ptr<Entity> m_player;
+  Vec2                    m_lightSource;
   EntityManager           m_entities;
   std::vector<Segment>    m_segments;
   std::vector<Vertex>     m_points;

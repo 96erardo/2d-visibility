@@ -1,20 +1,20 @@
 #ifndef VERTEX_H
 #define VERTEX_H
 #include "Vec2.h"
-#include "Segment.h"
+
+class Segment;
 
 class Vertex {
   public:
-    Vec2     p;
-    float    angle = 0;
-    float    distance = 0;
-    Segment* segment;
+    Vec2   p;
+    Vec2   intersection;
+    float  angle = 0;
     
-    Vertex (float x, float y, Segment* segment);
+    Vertex (float x, float y);
+
+    static Vertex fromAngleOffset (float x, float y, const Vertex& v, float offset);
 
     void calcAngle (float x, float y);
-
-    void calcDistance (float x, float y);
 };
 
 #endif

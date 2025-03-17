@@ -15,6 +15,7 @@ Game::Game (const std::string& path) {
 
 void Game::init (const std::string& path) {
   m_window = sf::RenderWindow(sf::VideoMode({800, 600}), "Line-Line Collision");
+  m_window.setFramerateLimit(60);
   m_window.setMouseCursorVisible(false);
 
   std::srand(std::time(0));
@@ -22,12 +23,17 @@ void Game::init (const std::string& path) {
   std::ifstream file(path, std::ios::in);
   std::string command;
   std::vector<Vec2> points;
-  float playerX = 400.0f;
-  float playerY = 300.0f;
   float x = 0;
   float y = 0;
   float width = 0;
   float height = 0;
+
+  m_lightSource = Vec2(400.0f, 300.0f);
+
+  m_points.push_back(Vertex(0,0));
+  m_points.push_back(Vertex(800,0));
+  m_points.push_back(Vertex(800,600));
+  m_points.push_back(Vertex(0,600));
 
   while (file >> command) {
     if (command == "Box") {
@@ -36,7 +42,8 @@ void Game::init (const std::string& path) {
       auto entity = m_entities.addEntity("Box");
 
       entity->addComponent<CTransform>(x, y);
-      entity->addComponent<CRect>(x, y, width, height);
+      entity->addComponent<CRect>(x + width / 2, y + height / 2, width, height);
+      entity->getComponent<CRect>().rect.setFillColor(sf::Color(68,68,68));
 
       m_segments.push_back(Segment(x, y, x + width, y));
       m_segments.push_back(Segment(x + width, y, x + width, y + height));
@@ -45,15 +52,33 @@ void Game::init (const std::string& path) {
     }
   }
 
-  auto player = m_entities.addEntity("Player");
-  
-  player->addComponent<CTransform>(playerX, playerY);
-  player->addComponent<CRect>(playerX, playerY, 12, 12);
-  player->getComponent<CRect>().rect.setOrigin({ 6, 6 });
-  player->getComponent<CShape>().rect.setPosition({ playerX, playerY });
-  player->getComponent<CShape>().rect.setFillColor(sf::Color::Red);
+  for (auto& s : m_segments) {
+    if (
+      std::find_if(m_points.begin(), m_points.end(), [s](Vertex p) -> bool { return p.p == s.p1; } ) == m_points.end()
+    ) {
+      Vertex v(s.p1.x, s.p1.y);
 
-  m_player = player;
+      m_points.push_back(v);
+      m_points.push_back(Vertex::fromAngleOffset(m_lightSource.x, m_lightSource.y, v, 0.001));
+      m_points.push_back(Vertex::fromAngleOffset(m_lightSource.x, m_lightSource.y, v, -0.001));
+    }
+
+    if (
+      std::find_if(m_points.begin(), m_points.end(), [s](Vertex p) -> bool { return p.p == s.p2; } ) == m_points.end()
+    ) {
+      Vertex v(s.p2.x, s.p2.y);
+
+      m_points.push_back(v);
+      m_points.push_back(Vertex::fromAngleOffset(m_lightSource.x, m_lightSource.y, v, 0.001));
+      m_points.push_back(Vertex::fromAngleOffset(m_lightSource.x, m_lightSource.y, v, -0.001));
+    }
+  }
+
+  for (auto& point : m_points) {
+    auto triangle = m_entities.addEntity("Triangle");
+
+    triangle->addComponent<CTriangle>();
+  }
 }
 
 void Game::run () {
@@ -62,7 +87,7 @@ void Game::run () {
     while (const std::optional event = m_window.pollEvent()) {
       // "close requested" event: we close the window
       if (const auto* mouseMoved =  event->getIf<sf::Event::MouseMoved>()) {
-        m_player->getComponent<CTransform>().pos = Vec2(mouseMoved->position.x, mouseMoved->position.y);
+        m_lightSource = Vec2(mouseMoved->position.x, mouseMoved->position.y);
       
       } else if (event->is<sf::Event::Closed>()) {
         m_window.close();
@@ -74,41 +99,26 @@ void Game::run () {
 }
 
 void Game::sMovement () {
-  m_player->getComponent<CShape>().rect.setPosition({
-    m_player->getComponent<CTransform>().pos.x,
-    m_player->getComponent<CTransform>().pos.y
-  });
-
-  Vec2 pos = m_player->getComponent<CPosition>().pos;
-
-  for (auto& segment : m_segments) {
-    segment.p1.calcAngle(pos.x, pos.y);
-    segment.p1.calcDistance(pos.x, pos.y);
-    segment.p2.calcAngle(pos.x, pos.y);
-    segment.p2.calcDistance(pos.x, pos.y);
-
-    m_points.push_back(segment.p1);
-    m_points.push_back(segment.p2);
+  for (auto& point : m_points) {
+    point.calcAngle(m_lightSource.x, m_lightSource.y);
   }
 
-  std::sort(m_points.begin(), m_points.end(), [](Vertex a, Vertex b) { return a.angle < b.angle });
-
-  
+  std::sort(m_points.begin(), m_points.end(), [](Vertex a, Vertex b) -> bool { return a.angle < b.angle; });
 }
 
 void Game::sCollision () {
-  for (auto line : m_entities.getEntities("Ray")) {
-    float x1 = line->getComponent<CLine>().p1.x;
-    float y1 = line->getComponent<CLine>().p1.y;
-    float x2 = line->getComponent<CLine>().p2.x;
-    float y2 = line->getComponent<CLine>().p2.y;
+  for (size_t i = 0; i < m_points.size(); i++) {
+    float x1 = m_lightSource.x;
+    float y1 = m_lightSource.y;
+    float x2 = m_points.at(i).p.x;
+    float y2 = m_points.at(i).p.y;
     float closest = 300;
 
-    for (auto wall : m_entities.getEntities("Wall")) {
-      float x3 = wall->getComponent<CLine>().p1.x;
-      float y3 = wall->getComponent<CLine>().p1.y;
-      float x4 = wall->getComponent<CLine>().p2.x;
-      float y4 = wall->getComponent<CLine>().p2.y;
+    for (auto& segment : m_segments) {
+      float x3 = segment.p1.x;
+      float y3 = segment.p1.y;
+      float x4 = segment.p2.x;
+      float y4 = segment.p2.y;
 
       float a = x2 - x1;
       float b = -(x4 - x3);
@@ -133,7 +143,7 @@ void Game::sCollision () {
         (t >= 0) &&
         (s >= 0 && s <= 1)
       ) {
-        closest = std::min(closest, t);  
+        closest = std::min(closest, t);
       }
     }
 
@@ -141,18 +151,34 @@ void Game::sCollision () {
       float x = x1 + (closest * (x2 - x1));
       float y = y1 + (closest * (y2 - y1));
 
-      line->getComponent<CLine>().line[1].position.x = x;
-      line->getComponent<CLine>().line[1].position.y = y;
+      m_points.at(i).intersection = Vec2(x, y);
     }
+  }
+
+  std::vector<std::shared_ptr<Entity>> triangles = m_entities.getEntities("Triangle");
+
+  for (size_t i = 0; i < triangles.size(); i++) {
+    auto& triangle = triangles.at(i)->getComponent<CTriangle>().triangle;
+
+    triangle[0].position.x = i == 0 ? m_points.back().intersection.x : m_points.at(i - 1).intersection.x;
+    triangle[0].position.y = i == 0 ? m_points.back().intersection.y : m_points.at(i - 1).intersection.y;
+    triangle[1].position.x = m_lightSource.x;
+    triangle[1].position.y = m_lightSource.y;
+    triangle[2].position.x = m_points.at(i).intersection.x;
+    triangle[2].position.y = m_points.at(i).intersection.y;
   }
 }
 
 void Game::sRender () {
-  m_window.clear(sf::Color(51, 54, 68)); 
+  m_window.clear(sf::Color(154, 154, 154)); 
 
   for (auto entity : m_entities.getEntities()) {
     if (entity->hasComponent<CRect>()) {
       m_window.draw(entity->getComponent<CRect>().rect);
+    }
+
+    if (entity->hasComponent<CTriangle>()) {
+      m_window.draw(entity->getComponent<CTriangle>().triangle);
     }
   }
 
