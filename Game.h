@@ -3,7 +3,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "EntityManager.h"
 #include "Segment.h"
-#include "Vertex.h"
+#include "Ray.h"
 
 struct Event {
   float    angle;
@@ -13,10 +13,10 @@ struct Event {
 
 class Game {
   sf::RenderWindow        m_window;
-  Vec2                    m_lightSource;
+  std::shared_ptr<Entity> m_player;
   EntityManager           m_entities;
   std::vector<Segment>    m_segments;
-  std::vector<Vertex>     m_points;
+  std::vector<Ray>     m_points;
 
   void init (const std::string& path);
   void update ();

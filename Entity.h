@@ -5,9 +5,8 @@
 
 typedef std::tuple<
   CTransform,
-  CRect,
-  CLine,
-  CTriangle
+  CShape,
+  CCircle
 > ComponentTuple;
 
 class Entity {
